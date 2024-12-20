@@ -22,3 +22,21 @@ let response = await fetch("http://localhost:3000/?text=你好吗");
 let data = await response.json();
 console.log(data);
 ```
+
+
+## Usage
+
+The idea was to run this server, say with ngrok, and then add a custom google sheets function to run it.
+
+```javascript
+function SPLITCHINESE(text) {
+  const response = UrlFetchApp.fetch('https://040e-78-70-155-234.ngrok-free.app/?text=' + text);
+  const jsonText = response.getContentText()
+  const data = JSON.parse(jsonText);
+  return data.segmented;
+}
+```
+
+This can then be used in google sheets like this:
+
+![Example usage](example-sheets.png)
