@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const cheerio = require('cheerio');
+const cheerio = require("cheerio");
 
 const FormData = require("form-data");
 
@@ -10,9 +10,7 @@ app.use(cors());
 
 const cache = {};
 
-app.get("/", async (req, res) => {
-  const text = req.query.text;
-
+const splitTextRow = async (text) => {
   // Create form data
   const formData = new FormData();
   formData.append("e", "utf-8");
@@ -28,68 +26,82 @@ app.get("/", async (req, res) => {
     return res.json(cache[text]);
   }
 
+  // Make POST request
+  const response = await fetch("https://api.mandarinspot.com/annotate", {
+    method: "POST",
+    body: formData.getBuffer(),
+    headers: {
+      ...formData.getHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.text();
+
+  // Extract words from the HTML response using cheerio
+
+  const $ = cheerio.load(data);
+
+  if ($("#annotated").length === 0) {
+    console.log(data);
+    return res.status(400).json({
+      error: "No annotated text found",
+    });
+  }
+
+  const words = [];
+  $("#annotated .zh").each((i, el) => {
+    words.push($(el).text());
+  });
+
+  // Create an array that includes both words and punctuation
+  let remainingText = text;
+  const allSegments = [];
+
+  words.forEach((word) => {
+    const wordIndex = remainingText.indexOf(word);
+    if (wordIndex > 0) {
+      // Add any characters before the word (punctuation/spaces)
+      allSegments.push(remainingText.substring(0, wordIndex));
+    }
+    // Add the word itself
+    allSegments.push(word);
+    // Update remaining text to continue search
+    remainingText = remainingText.substring(wordIndex + word.length);
+  });
+
+  // Add any remaining characters at the end
+  if (remainingText.length > 0) {
+    allSegments.push(remainingText);
+  }
+
+  const result = {
+    words: words,
+    segmented: allSegments.join(" "),
+    text,
+  };
+
+  cache[text] = result;
+
+  return result;
+};
+
+app.get("/", async (req, res) => {
   try {
-    // Make POST request
-    const response = await fetch("https://api.mandarinspot.com/annotate", {
-      method: "POST",
-      body: formData.getBuffer(),
-      headers: {
-        ...formData.getHeaders(),
-      },
-    });
+    const text = req.query.text;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const rows = text.split("\n");
+    const results = await Promise.all(rows.map(splitTextRow));
 
-    const data = await response.text();
-
-    // Extract words from the HTML response using cheerio
-
-    const $ = cheerio.load(data);
-
-    if ($('#annotated').length === 0) {
-      console.log(data)
-      return res.status(400).json({
-        error: "No annotated text found",
-      });
-    }
-
-    const words = [];
-    $('#annotated .zh').each((i, el) => {
-      words.push($(el).text());
-    });
-
-    // Create an array that includes both words and punctuation
-    let remainingText = text;
-    const allSegments = [];
-
-    words.forEach(word => {
-      const wordIndex = remainingText.indexOf(word);
-      if (wordIndex > 0) {
-        // Add any characters before the word (punctuation/spaces)
-        allSegments.push(remainingText.substring(0, wordIndex));
-      }
-      // Add the word itself
-      allSegments.push(word);
-      // Update remaining text to continue search
-      remainingText = remainingText.substring(wordIndex + word.length);
-    });
-
-    // Add any remaining characters at the end
-    if (remainingText.length > 0) {
-      allSegments.push(remainingText);
-    }
-
-    const result = {
-      words: words,
-      segmented: allSegments.join(' '),
+    return res.json({
+      words: results.map((r) => r.words),
+      segmented: results.map((r) => r.segmented).join("\n"),
       text,
-    };
+    });
 
-    cache[text] = result;
-
-    return res.json(result);
   } catch (error) {
     console.error("Error:", error);
     return res.status(500).json({ error: "Failed to process text" });
