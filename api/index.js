@@ -3,9 +3,11 @@ const cors = require("cors");
 const app = express();
 
 const { splitChineseTextRow } = require("./split-chinese");
+const { splitJapaneseTextRow } = require("./split-japanese");
 
 const splitFunctions = {
   chinese: splitChineseTextRow,
+  japanese: splitJapaneseTextRow,
 };
 
 // Enable CORS for all routes
