@@ -60,9 +60,30 @@ app.get("/", async (req, res) => {
       words.push($(el).text());
     });
 
+    // Create an array that includes both words and punctuation
+    let remainingText = text;
+    const allSegments = [];
+
+    words.forEach(word => {
+      const wordIndex = remainingText.indexOf(word);
+      if (wordIndex > 0) {
+        // Add any characters before the word (punctuation/spaces)
+        allSegments.push(remainingText.substring(0, wordIndex));
+      }
+      // Add the word itself
+      allSegments.push(word);
+      // Update remaining text to continue search
+      remainingText = remainingText.substring(wordIndex + word.length);
+    });
+
+    // Add any remaining characters at the end
+    if (remainingText.length > 0) {
+      allSegments.push(remainingText);
+    }
+
     const result = {
       words: words,
-      segmented: words.join(" "),
+      segmented: allSegments.join(' '),
       text,
     };
 
