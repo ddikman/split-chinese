@@ -29,12 +29,18 @@ console.log(data);
 The idea was to run this server, say with ngrok, and then add a custom google sheets function to run it.
 
 ```javascript
-function SPLITCHINESE(text) {
-  const response = UrlFetchApp.fetch('https://040e-78-70-155-234.ngrok-free.app/?text=' + text);
+function splitChinese(text) {
+  if (!text || text === '') {
+    return '';
+  }
+
+  const encodedText = encodeURIComponent(text);
+  const response = UrlFetchApp.fetch('https://7973-78-70-155-234.ngrok-free.app/?text=' + encodedText);
   const jsonText = response.getContentText()
   const data = JSON.parse(jsonText);
   return data.segmented;
 }
+
 ```
 
 This can then be used in google sheets like this:
