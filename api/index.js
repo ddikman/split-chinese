@@ -14,9 +14,9 @@ const splitFunctions = {
 app.use(cors());
 
 app.get("/", async (req, res) => {
+  const startTime = Date.now();
   try {
     const text = req.query.text;
-
     const lang = req.query.lang ?? "chinese";
 
     const splitFunction = splitFunctions[lang];
@@ -28,11 +28,16 @@ app.get("/", async (req, res) => {
     const rows = text.split("\n");
     const results = await Promise.all(rows.map(splitFunction));
 
-    return res.json({
+    const response = {
       words: results.map((r) => r.words),
       segmented: results.map((r) => r.segmented).join("\n"),
       text,
-    });
+    };
+
+    const duration = Date.now() - startTime;
+    console.log(`[${duration}ms] Completed (${lang}): ${text.replace(/\n/g, '\\n')}`);
+
+    return res.json(response);
 
   } catch (error) {
     if (error.message.includes("BadRequest")) {
