@@ -70,9 +70,11 @@ const splitChineseTextRow = async (text) => {
     allSegments.push(remainingText);
   }
 
+  const segmented = allSegments.join(" ").replace(/\s+([.,!?;:。，！？；：])/g, "$1");
+
   const result = {
     words: words,
-    segmented: allSegments.join(" "),
+    segmented,
     text,
   };
 
