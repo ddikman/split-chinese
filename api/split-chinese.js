@@ -70,9 +70,12 @@ const splitChineseTextRow = async (text) => {
     allSegments.push(remainingText);
   }
 
+  // Join words, removing any double spaces
+  const segmented = allSegments.map((segment) => segment.trim()).join(" ");
+
   const result = {
     words: words,
-    segmented: allSegments.join(" "),
+    segmented,
     text,
   };
 
