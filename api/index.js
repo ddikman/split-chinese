@@ -19,6 +19,10 @@ app.get("/", async (req, res) => {
     const text = req.query.text;
     const lang = req.query.lang ?? "chinese";
 
+    if (!text) {
+      return res.status(400).json({ error: "Please call this with ?text=<your text> and optionally ?lang=<language>." });
+    }
+
     const splitFunction = splitFunctions[lang];
 
     if (!splitFunction) {
